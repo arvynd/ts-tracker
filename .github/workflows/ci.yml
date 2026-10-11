@@ -11,7 +11,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
+      - uses: extractions/setup-just@v2
       - run: uv sync
-      - run: make lint
-      - run: make test
-      - run: make bench
+      - run: just lint
+      - run: just test
+      - run: just bench

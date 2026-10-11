@@ -6,4 +6,4 @@ A public, reproducible benchmark asking whether time-series foundation models be
 
 See [PLAN.md](PLAN.md) for the full project plan and phases.
 
-**Status:** Phase 0 (repo and skeleton) done; Phase 1 (data pipeline) next. Try `make setup && make bench`.
+**Status:** Phase 0 (repo and skeleton) done; Phase 1 (data pipeline) next. Try `just setup && just bench`.

@@ -42,12 +42,12 @@ Start with Agmarknet mandi arrivals, then repeat the study on VN1. The rule that
 
 A public repo that installs in one command and runs a dummy forecast end to end.
 
-- `uv` for the environment, `ruff` + `pytest`, a Makefile with targets like `make data`, `make bench`, `make deploy-local`.
+- `uv` for the environment, `ruff` + `pytest`, a justfile with recipes like `just data`, `just bench`, `just deploy-local`.
 - Layout: `ingest/`, `features/`, `models/`, `conformal/`, `reconcile/`, `serve/`, `infra/`.
 - Storage as Parquet, queried with Polars. One config file for scope (commodities, states, horizons, cutoffs).
 - CI on GitHub Actions: lint, tests, and a tiny smoke benchmark on a sample.
 
-**Done when:** `make bench` runs seasonal-naive on a 100-row sample and writes a results table.
+**Done when:** `just bench` runs seasonal-naive on a 100-row sample and writes a results table.
 
 ## Phase 1: Data pipeline and hierarchy
 
@@ -136,7 +136,7 @@ Rerun Phases 2-4 on VN1 to test whether the Agmarknet findings hold on retail sa
 
 Publish findings in a form a hiring manager can scan in two minutes and a practitioner can reproduce in an afternoon.
 
-- **README:** the question, the headline result, one chart, and make commands to reproduce.
+- **README:** the question, the headline result, one chart, and just commands to reproduce.
 - **Long-form post:** leakage-safe protocol, where foundation models win and lose, conformal coverage, reconciliation order.
 - **Live leaderboard page** fed by the deployed scoring job.
 - **Model cards** for each model: version, release date, licence, pretraining notes.
