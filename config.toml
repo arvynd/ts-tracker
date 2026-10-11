@@ -1,0 +1,16 @@
+# Single scope config for data, benchmark and serving.
+
+[scope]
+commodities = ["onion", "tomato", "potato"]
+states = []  # pick 3-5 states in Phase 1
+
+[forecast]
+freq = "weekly"
+horizons = [1, 4, 8]
+season_length = 52
+# Rolling-origin cutoffs; every one must be after the newest model release date.
+cutoffs = []
+
+[paths]
+data_dir = "data"
+results_dir = "results"

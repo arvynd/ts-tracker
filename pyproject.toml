@@ -1,7 +1,32 @@
 [project]
 name = "ts-tracker"
 version = "0.1.0"
-description = "Add your description here"
+description = "Leakage-safe benchmark of time-series foundation models on demand-like data"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "numpy>=2.0",
+    "polars>=1.0",
+]
+
+[project.scripts]
+ts-tracker = "ts_tracker.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.8",
+]
+
+[build-system]
+requires = ["uv_build>=0.9.21,<0.10"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

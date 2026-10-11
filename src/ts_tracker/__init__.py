@@ -1,0 +1,1 @@
+"""Leakage-safe forecasting benchmark."""
