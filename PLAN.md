@@ -44,7 +44,7 @@ A public repo that installs in one command and runs a dummy forecast end to end.
 
 - `uv` for the environment, `ruff` + `pytest`, a Makefile with targets like `make data`, `make bench`, `make deploy-local`.
 - Layout: `ingest/`, `features/`, `models/`, `conformal/`, `reconcile/`, `serve/`, `infra/`.
-- Storage as Parquet, queried with DuckDB. One config file for scope (commodities, states, horizons, cutoffs).
+- Storage as Parquet, queried with Polars. One config file for scope (commodities, states, horizons, cutoffs).
 - CI on GitHub Actions: lint, tests, and a tiny smoke benchmark on a sample.
 
 **Done when:** `make bench` runs seasonal-naive on a 100-row sample and writes a results table.
