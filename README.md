@@ -1,8 +1,8 @@
 # ts-tracker
 
-> **Work in progress.** Nothing runnable yet beyond a stub entrypoint.
+> **Work in progress.** Nothing runnable yet beyond a smoke benchmark.
 
-A public, reproducible benchmark asking whether time-series foundation models beat N-BEATS/N-HiTS and a tuned LightGBM on demand-like data they haven't seen, and whether their prediction intervals are honest. First dataset: Agmarknet mandi arrivals, then VN1.
+A public, reproducible benchmark asking whether time-series foundation models beat N-BEATS/N-HiTS and a tuned LightGBM on electricity demand data they haven't seen, with real external covariates (weather, calendar), and whether their prediction intervals are honest. Primary dataset: EIA-930 hourly demand by US balancing authority and subregion. Second dataset: VN1 retail sales.
 
 See [PLAN.md](PLAN.md) for the full project plan and phases.
 

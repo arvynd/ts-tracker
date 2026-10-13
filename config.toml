@@ -1,12 +1,12 @@
 # Single scope config for data, benchmark and serving.
 
 [scope]
-commodities = ["onion", "tomato", "potato"]
-states = []  # pick 3-5 states in Phase 1
+# Balancing authorities in the starting scope: the 8 that report subregions in EIA-930.
+bas = ["CISO", "ERCO", "ISNE", "MISO", "NYIS", "PJM", "PNM", "SWPP"]
 
 [forecast]
-freq = "weekly"
-horizons = [1, 4, 8]
+freq = "weekly"  # weeks run Monday-Sunday UTC; mean MW, 168 hours required
+horizons = [1, 2, 4]  # weeks
 season_length = 52
 # Rolling-origin cutoffs; every one must be after the newest model release date.
 cutoffs = []
