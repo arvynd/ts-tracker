@@ -7,6 +7,9 @@ setup:
 data:
     uv run ts-tracker data
 
+ingest:
+    uv run ts-tracker ingest
+
 bench: data
     uv run ts-tracker bench
 

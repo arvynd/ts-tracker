@@ -11,6 +11,9 @@ class Config:
     horizons: list[int]
     season_length: int
     cutoffs: list[str]
+    ingest_url_template: str
+    ingest_kinds: list[str]
+    ingest_periods: list[str]
     data_dir: Path
     results_dir: Path
 
@@ -22,6 +25,9 @@ def load_config(path: Path = DEFAULT_CONFIG) -> Config:
         horizons=raw["forecast"]["horizons"],
         season_length=raw["forecast"]["season_length"],
         cutoffs=raw["forecast"]["cutoffs"],
+        ingest_url_template=raw["ingest"]["url_template"],
+        ingest_kinds=raw["ingest"]["kinds"],
+        ingest_periods=raw["ingest"]["periods"],
         data_dir=Path(raw["paths"]["data_dir"]),
         results_dir=Path(raw["paths"]["results_dir"]),
     )

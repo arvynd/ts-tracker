@@ -11,6 +11,12 @@ season_length = 52
 # Rolling-origin cutoffs; every one must be after the newest model release date.
 cutoffs = []
 
+[ingest]
+# EIA-930 half-year files; the URL pattern is undocumented, so every download is checked.
+url_template = "https://www.eia.gov/electricity/gridmonitor/sixMonthFiles/EIA930_{kind}_{period}.csv"
+kinds = ["BALANCE", "SUBREGION"]
+periods = ["2025_Jan_Jun"]
+
 [paths]
 data_dir = "data"
 results_dir = "results"
