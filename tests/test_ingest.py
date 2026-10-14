@@ -1,3 +1,4 @@
+import dataclasses
 import hashlib
 import json
 from datetime import UTC, datetime
@@ -126,3 +127,18 @@ def test_fetch_gives_up_after_four_attempts(tmp_path):
     with pytest.raises(requests.exceptions.ChunkedEncodingError):
         fetch("https://example.test/f.csv", tmp_path / "f.csv", session=session, wait=wait_none())
     assert session.calls == 4
+
+
+def test_manifest_keeps_finished_files_when_a_later_fetch_raises(tmp_path):
+    cfg = dataclasses.replace(make_cfg(tmp_path), ingest_kinds=["BALANCE", "SUBREGION"])
+    good = fake()
+
+    def flaky(url, dest):
+        if "SUBREGION" in url:
+            raise requests.ConnectionError("down")
+        return good(url, dest)
+
+    with pytest.raises(requests.ConnectionError):
+        ingest(cfg, flaky, NOW)
+    manifest = json.loads((cfg.data_dir / "raw" / "2025-07-15" / "manifest.json").read_text())
+    assert [e["file"] for e in manifest] == ["EIA930_BALANCE_2025_Jan_Jun.csv"]

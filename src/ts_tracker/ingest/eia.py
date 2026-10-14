@@ -123,6 +123,13 @@ def check_payload(source: Source, download: Download) -> str | None:
     return None
 
 
+def _write_manifest(path: Path, manifest: dict[str, dict]) -> None:
+    """Write via a temp file so a crash never leaves a half-written manifest."""
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(json.dumps(list(manifest.values()), indent=2) + "\n")
+    tmp.replace(path)
+
+
 def sources(cfg: Config) -> list[Source]:
     return [Source(kind, period) for period in cfg.ingest_periods for kind in cfg.ingest_kinds]
 
@@ -165,8 +172,9 @@ def ingest(cfg: Config, fetcher: Fetcher = fetch, now: datetime | None = None) -
             "quarantined": reason is not None,
             "reason": reason,
         }
+        _write_manifest(manifest_path, manifest)  # per file, so a later failure loses nothing
 
-    manifest_path.write_text(json.dumps(list(manifest.values()), indent=2) + "\n")
+    _write_manifest(manifest_path, manifest)
     return list(manifest.values())
 
 
