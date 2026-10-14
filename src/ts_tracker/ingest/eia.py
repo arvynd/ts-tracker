@@ -149,8 +149,9 @@ def ingest(cfg: Config, fetcher: Fetcher = fetch, now: datetime | None = None) -
 
     raw_dir.mkdir(parents=True, exist_ok=True)
     for source in sources(cfg):
-        if (raw_dir / source.name).exists():
-            continue  # immutable: already stored in this snapshot
+        if source.name in manifest and (raw_dir / source.name).exists():
+            continue  # immutable: stored and recorded in this snapshot
+        # A file with no manifest entry has unknown provenance, so it is fetched again.
         url = cfg.ingest_url_template.format(kind=source.kind, period=source.period)
         part = raw_dir / f"{source.name}.part"
         download = fetcher(url, part)

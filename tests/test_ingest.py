@@ -66,6 +66,18 @@ def test_same_snapshot_is_not_overwritten_or_refetched(tmp_path):
     assert stored.read_bytes() == BALANCE_CSV
 
 
+def test_stored_file_without_manifest_entry_is_fetched_again(tmp_path):
+    cfg = make_cfg(tmp_path)
+    ingest(cfg, fake(), NOW)
+    raw_dir = cfg.data_dir / "raw" / "2025-07-15"
+    (raw_dir / "manifest.json").unlink()
+    fetcher = fake()
+    (entry,) = ingest(cfg, fetcher, NOW)
+    assert len(fetcher.calls) == 1
+    assert entry["sha256"] == hashlib.sha256(BALANCE_CSV).hexdigest()
+    assert json.loads((raw_dir / "manifest.json").read_text())[0]["file"] == entry["file"]
+
+
 def test_bad_payloads_are_quarantined(tmp_path):
     bad = {
         "html": fake(content_type="text/html", body=b"<html>503</html>"),
