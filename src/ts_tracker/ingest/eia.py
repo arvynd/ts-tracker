@@ -23,6 +23,7 @@ from tenacity.wait import wait_base
 from urllib3.util.retry import Retry
 
 from ts_tracker.config import Config
+from ts_tracker.ingest.validate import Quality, validate_file, write_reports
 
 # Header columns every file must carry; a missing one is a hard failure.
 REQUIRED_COLUMNS = {
@@ -123,10 +124,10 @@ def check_payload(source: Source, download: Download) -> str | None:
     return None
 
 
-def _write_manifest(path: Path, manifest: dict[str, dict]) -> None:
-    """Write via a temp file so a crash never leaves a half-written manifest."""
+def _write_json(path: Path, data: list | dict) -> None:
+    """Write via a temp file so a crash never leaves a half-written file."""
     tmp = path.with_name(path.name + ".tmp")
-    tmp.write_text(json.dumps(list(manifest.values()), indent=2) + "\n")
+    tmp.write_text(json.dumps(data, indent=2) + "\n")
     tmp.replace(path)
 
 
@@ -134,18 +135,38 @@ def sources(cfg: Config) -> list[Source]:
     return [Source(kind, period) for period in cfg.ingest_periods for kind in cfg.ingest_kinds]
 
 
+def snapshot_dir(cfg: Config, now: datetime) -> Path:
+    return cfg.data_dir / "raw" / now.date().isoformat()
+
+
+def _save_quality(
+    cfg: Config, raw_dir: Path, report: dict[str, dict], name: str, quality: Quality
+) -> None:
+    """Record one file's result: quality.json beside the manifest, Pointblank HTML in reports."""
+    report[name] = quality.to_dict()
+    _write_json(raw_dir / "quality.json", report)
+    reports = cfg.reports_dir / "quality" / raw_dir.name
+    reports.mkdir(parents=True, exist_ok=True)
+    write_reports(quality, reports, Path(name).stem)
+
+
 def ingest(cfg: Config, fetcher: Fetcher = fetch, now: datetime | None = None) -> list[dict]:
-    """Fetch every configured source once per snapshot date; never overwrite a stored file."""
+    """Fetch every configured source once per snapshot date; never overwrite a stored file.
+
+    Transport failures and hard content failures quarantine the file. Soft content flags go to
+    quality.json beside the manifest; the manifest itself stays transport-only.
+    """
     now = now or datetime.now(UTC)
-    snapshot = now.date().isoformat()
-    raw_dir = cfg.data_dir / "raw" / snapshot
-    quarantine_dir = cfg.data_dir / "quarantine" / snapshot
+    raw_dir = snapshot_dir(cfg, now)
+    quarantine_dir = cfg.data_dir / "quarantine" / now.date().isoformat()
     manifest_path = raw_dir / "manifest.json"
+    quality_path = raw_dir / "quality.json"
     manifest: dict[str, dict] = (
         {e["file"]: e for e in json.loads(manifest_path.read_text())}
         if manifest_path.exists()
         else {}
     )
+    report: dict[str, dict] = json.loads(quality_path.read_text()) if quality_path.exists() else {}
 
     raw_dir.mkdir(parents=True, exist_ok=True)
     for source in sources(cfg):
@@ -156,6 +177,11 @@ def ingest(cfg: Config, fetcher: Fetcher = fetch, now: datetime | None = None) -
         part = raw_dir / f"{source.name}.part"
         download = fetcher(url, part)
         reason = check_payload(source, download)
+        quality = None
+        if reason is None:
+            quality = validate_file(source.kind, part, source.name)
+            if quality.hard:
+                reason = "content checks failed: " + "; ".join(quality.hard)
         if reason:
             quarantine_dir.mkdir(parents=True, exist_ok=True)
             if part.exists():
@@ -173,13 +199,55 @@ def ingest(cfg: Config, fetcher: Fetcher = fetch, now: datetime | None = None) -
             "quarantined": reason is not None,
             "reason": reason,
         }
-        _write_manifest(manifest_path, manifest)  # per file, so a later failure loses nothing
+        if quality:
+            _save_quality(cfg, raw_dir, report, source.name, quality)
+        _write_json(manifest_path, list(manifest.values()))  # per file, so a failure loses nothing
 
-    _write_manifest(manifest_path, manifest)
+    _write_json(manifest_path, list(manifest.values()))
     return list(manifest.values())
 
 
+def _quality_lines(report: dict[str, dict]) -> list[str]:
+    lines = []
+    for name, quality in report.items():
+        lines += [f"  HARD {name}: {failure}" for failure in quality["hard"]]
+        for check, failing in quality["soft"].items():
+            lines.append(f"  flag {name}: {check}: {len(failing)} of {quality['series']} series")
+    return lines
+
+
 def main(cfg: Config) -> None:
-    for entry in ingest(cfg):
+    now = datetime.now(UTC)
+    for entry in ingest(cfg, now=now):
         state = f"QUARANTINED ({entry['reason']})" if entry["quarantined"] else "ok"
         print(f"{entry['file']}: {entry['bytes']:,} bytes, {state}")
+    quality_path = snapshot_dir(cfg, now) / "quality.json"
+    if quality_path.exists():
+        print("\n".join(_quality_lines(json.loads(quality_path.read_text()))))
+        print(f"quality reports: {cfg.reports_dir / 'quality' / now.date().isoformat()}")
+
+
+def validate_stored(cfg: Config, snapshot: str | None = None) -> Path:
+    """Re-run the content checks on files already in a raw snapshot (default: the latest).
+
+    Nothing is moved: a hard failure here is reported, and the file stays where it is.
+    """
+    raw_root = cfg.data_dir / "raw"
+    snapshots = sorted(p for p in raw_root.iterdir() if p.is_dir()) if raw_root.is_dir() else []
+    if not snapshots:
+        raise SystemExit("no raw snapshots found; run `just ingest` first")
+    raw_dir = raw_root / snapshot if snapshot else snapshots[-1]
+    report: dict[str, dict] = {}
+    for source in sources(cfg):
+        path = raw_dir / source.name
+        if path.exists():
+            _save_quality(cfg, raw_dir, report, source.name, validate_file(source.kind, path))
+    return raw_dir
+
+
+def validate_main(cfg: Config, snapshot: str | None = None) -> None:
+    raw_dir = validate_stored(cfg, snapshot)
+    report = json.loads((raw_dir / "quality.json").read_text())
+    print(f"validated {', '.join(report)} in {raw_dir}")
+    print("\n".join(_quality_lines(report)))
+    print(f"quality reports: {cfg.reports_dir / 'quality' / raw_dir.name}")

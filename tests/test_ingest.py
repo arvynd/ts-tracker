@@ -9,7 +9,7 @@ import requests
 from tenacity import wait_none
 
 from ts_tracker.config import Config
-from ts_tracker.ingest.eia import Download, fetch, ingest
+from ts_tracker.ingest.eia import Download, fetch, ingest, validate_stored
 
 BALANCE_CSV = (
     b"Balancing Authority,UTC Time at End of Hour,Region,Demand (MW)\n"
@@ -29,6 +29,7 @@ def make_cfg(tmp_path: Path) -> Config:
         ingest_periods=["2025_Jan_Jun"],
         data_dir=tmp_path / "data",
         results_dir=tmp_path / "results",
+        reports_dir=tmp_path / "reports",
     )
 
 
@@ -76,6 +77,58 @@ def test_stored_file_without_manifest_entry_is_fetched_again(tmp_path):
     assert len(fetcher.calls) == 1
     assert entry["sha256"] == hashlib.sha256(BALANCE_CSV).hexdigest()
     assert json.loads((raw_dir / "manifest.json").read_text())[0]["file"] == entry["file"]
+
+
+def test_hard_content_failure_quarantines_the_file(tmp_path):
+    duplicated = BALANCE_CSV + BALANCE_CSV.split(b"\n", 1)[1]
+    cfg = make_cfg(tmp_path)
+    (entry,) = ingest(cfg, fake(body=duplicated), NOW)
+    assert entry["quarantined"]
+    assert entry["reason"] == "content checks failed: duplicate keys (2 rows)"
+    assert not (cfg.data_dir / "raw" / "2025-07-15" / entry["file"]).exists()
+    assert (cfg.data_dir / "quarantine" / "2025-07-15" / entry["file"]).exists()
+
+
+def test_soft_flags_go_to_quality_json_and_the_file_is_kept(tmp_path):
+    zero = BALANCE_CSV.replace(b",90000", b",0")
+    cfg = make_cfg(tmp_path)
+    (entry,) = ingest(cfg, fake(body=zero), NOW)
+    raw_dir = cfg.data_dir / "raw" / "2025-07-15"
+    assert not entry["quarantined"] and (raw_dir / entry["file"]).exists()
+    quality = json.loads((raw_dir / "quality.json").read_text())[entry["file"]]
+    assert quality["hard"] == [] and "zero demand" in quality["soft"]
+    assert "soft" not in entry and "zero demand" not in json.dumps(entry)
+
+
+def test_ingest_writes_pointblank_html_reports(tmp_path):
+    cfg = make_cfg(tmp_path)
+    ingest(cfg, fake(), NOW)
+    out = cfg.reports_dir / "quality" / "2025-07-15"
+    assert sorted(p.name for p in out.iterdir()) == [
+        "EIA930_BALANCE_2025_Jan_Jun_hard.html",
+        "EIA930_BALANCE_2025_Jan_Jun_soft.html",
+    ]
+    assert "<table" in (out / "EIA930_BALANCE_2025_Jan_Jun_soft.html").read_text()
+
+
+def test_hard_failure_still_gets_a_hard_report_and_no_soft_one(tmp_path):
+    duplicated = BALANCE_CSV + BALANCE_CSV.split(b"\n", 1)[1]
+    cfg = make_cfg(tmp_path)
+    ingest(cfg, fake(body=duplicated), NOW)
+    out = cfg.reports_dir / "quality" / "2025-07-15"
+    assert [p.name for p in out.iterdir()] == ["EIA930_BALANCE_2025_Jan_Jun_hard.html"]
+
+
+def test_validate_stored_checks_files_already_in_raw(tmp_path):
+    cfg = make_cfg(tmp_path)
+    ingest(cfg, fake(), NOW)
+    raw_dir = cfg.data_dir / "raw" / "2025-07-15"
+    (raw_dir / "quality.json").unlink()
+    for html in (cfg.reports_dir / "quality" / "2025-07-15").iterdir():
+        html.unlink()
+    assert validate_stored(cfg) == raw_dir
+    assert json.loads((raw_dir / "quality.json").read_text())["EIA930_BALANCE_2025_Jan_Jun.csv"]
+    assert len(list((cfg.reports_dir / "quality" / "2025-07-15").iterdir())) == 2
 
 
 def test_bad_payloads_are_quarantined(tmp_path):

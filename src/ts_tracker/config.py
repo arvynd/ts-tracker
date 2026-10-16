@@ -16,6 +16,7 @@ class Config:
     ingest_periods: list[str]
     data_dir: Path
     results_dir: Path
+    reports_dir: Path
 
 
 def load_config(path: Path = DEFAULT_CONFIG) -> Config:
@@ -30,4 +31,5 @@ def load_config(path: Path = DEFAULT_CONFIG) -> Config:
         ingest_periods=raw["ingest"]["periods"],
         data_dir=Path(raw["paths"]["data_dir"]),
         results_dir=Path(raw["paths"]["results_dir"]),
+        reports_dir=Path(raw["paths"]["reports_dir"]),
     )

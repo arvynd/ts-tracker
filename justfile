@@ -10,6 +10,9 @@ data:
 ingest:
     uv run ts-tracker ingest
 
+validate:
+    uv run ts-tracker validate
+
 bench: data
     uv run ts-tracker bench
 

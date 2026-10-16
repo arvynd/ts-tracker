@@ -20,3 +20,4 @@ periods = ["2025_Jan_Jun"]
 [paths]
 data_dir = "data"
 results_dir = "results"
+reports_dir = "reports"  # data-quality reports; not ignored by git, so they can be committed

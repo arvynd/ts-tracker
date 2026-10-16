@@ -20,6 +20,10 @@ def cmd_ingest(args: argparse.Namespace) -> None:
     eia.main(load_config())
 
 
+def cmd_validate(args: argparse.Namespace) -> None:
+    eia.validate_main(load_config(), args.snapshot)
+
+
 def cmd_bench(args: argparse.Namespace) -> None:
     cfg = load_config()
     df = pl.read_parquet(cfg.data_dir / "sample.parquet")
@@ -36,6 +40,9 @@ def main() -> None:
     sub = parser.add_subparsers(required=True)
     sub.add_parser("data", help="write the 100-row sample panel").set_defaults(func=cmd_data)
     sub.add_parser("ingest", help="download EIA-930 raw snapshots").set_defaults(func=cmd_ingest)
+    validate = sub.add_parser("validate", help="check stored raw files and write quality reports")
+    validate.add_argument("--snapshot", help="raw snapshot date, e.g. 2026-10-14 (default: latest)")
+    validate.set_defaults(func=cmd_validate)
     sub.add_parser("bench", help="run the smoke benchmark").set_defaults(func=cmd_bench)
     args = parser.parse_args()
     args.func(args)
