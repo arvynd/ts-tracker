@@ -2,6 +2,7 @@ import argparse
 
 import polars as pl
 
+from ts_tracker import hierarchy
 from ts_tracker.bench import run_bench
 from ts_tracker.config import load_config
 from ts_tracker.ingest import eia
@@ -24,6 +25,10 @@ def cmd_validate(args: argparse.Namespace) -> None:
     eia.validate_main(load_config(), args.snapshot)
 
 
+def cmd_hierarchy(args: argparse.Namespace) -> None:
+    hierarchy.main(load_config(), args.snapshot)
+
+
 def cmd_bench(args: argparse.Namespace) -> None:
     cfg = load_config()
     df = pl.read_parquet(cfg.data_dir / "sample.parquet")
@@ -43,6 +48,9 @@ def main() -> None:
     validate = sub.add_parser("validate", help="check stored raw files and write quality reports")
     validate.add_argument("--snapshot", help="raw snapshot date, e.g. 2026-10-14 (default: latest)")
     validate.set_defaults(func=cmd_validate)
+    tree = sub.add_parser("hierarchy", help="build the hierarchy and summing matrix")
+    tree.add_argument("--snapshot", help="raw snapshot date, e.g. 2026-10-14 (default: latest)")
+    tree.set_defaults(func=cmd_hierarchy)
     sub.add_parser("bench", help="run the smoke benchmark").set_defaults(func=cmd_bench)
     args = parser.parse_args()
     args.func(args)

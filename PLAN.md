@@ -31,7 +31,7 @@ Why this dataset: it is open, updates daily, and has strong known-future covaria
   - Only 8 BAs report subregions: CISO (4), ERCO (8), ISNE (8), MISO (6), NYIS (11), PJM (20), PNM (9), SWPP (17), about 83 subregions in total.
   - Subregions do **not** sum to the published BA demand. CISO is near-exact; MISO, NYIS and SWPP are within 1% almost always but have isolated 20-30 GW gaps; ERCO, PJM and PNM are within 1% only 50-80% of hours; ISNE is poor (99th percentile gap about 21%).
   - 132 null subregion values and 98 non-positive BA demand values.
-- **Hierarchy (defined bottom-up, by decision):** do not use the published BA totals. Leaves are subregions for the 8 BAs that report them and the BA itself for the other BAs with usable demand. BA = sum of its subregions, region = sum of its BAs (BA-to-region map from the `Region` column), Lower 48 = sum of regions. The tree has mixed depth and is coherent by construction. This is a known limitation, documented in every result: derived BA series differ from EIA's published BA demand.
+- **Hierarchy (defined bottom-up, by decision):** do not use the published BA totals. Leaves are subregions for the 8 BAs that report them and the BA itself for the other BAs with usable demand. BA = sum of its subregions, region = sum of its BAs (BA-to-region map from the `Region` column), and the top node `TOTAL` = sum of the BAs in scope. `TOTAL` is not the Lower 48: the starting scope is 8 BAs. A node with exactly one child is the same series as that child, so it is collapsed into it. In the starting scope every region has a single in-scope BA, so the region level is collapsed away (83 leaves, 8 BAs, `TOTAL`: 92 series) and returns once a region has two or more BAs. The tree has mixed depth and is coherent by construction. This is a known limitation, documented in every result: derived BA series differ from EIA's published BA demand.
 - **Covariates:**
   - Weather (temperature, humidity, wind, cloud, precipitation) from Open-Meteo for each BA or subregion centroid, aggregated to the weekly grid (including heating and cooling degree-days). Known-future as forecasts, but only skillful to about 1-2 weeks; beyond that it is climatology (see the leakage rule).
   - Calendar: day of week, US federal and state holidays, daylight-saving transitions. Known-future.
@@ -123,7 +123,7 @@ Make forecasts coherent across subregion, BA, region and the Lower 48, and measu
 - Probabilistic reconciliation: bootstrap and PERMBU, compared against Gaussian.
 - **The interesting experiment:** conformalize then reconcile vs reconcile then conformalize. Reconciling can break calibrated coverage; few public write-ups test this order on real data.
 - **Mixed base forecasts:** foundation model at aggregate levels, LightGBM with weather features at small leaves, then reconcile. Tests whether the best model per level plus reconciliation beats any single model.
-- Caveat to state up front: the hierarchy is small (about 130 leaves) and shallow, so findings are indicative, not definitive.
+- Caveat to state up front: the hierarchy is small (83 leaves in the starting scope, about 130 if the remaining BAs are added) and shallow, so findings are indicative, not definitive.
 - Check: incoherence before and after, accuracy change per level, coverage change per level.
 
 **Done when:** a table of accuracy and coverage per level for each reconciliation method and order.

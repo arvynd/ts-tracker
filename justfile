@@ -13,6 +13,9 @@ ingest:
 validate:
     uv run ts-tracker validate
 
+hierarchy:
+    uv run ts-tracker hierarchy
+
 bench: data
     uv run ts-tracker bench
 

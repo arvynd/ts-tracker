@@ -139,6 +139,15 @@ def snapshot_dir(cfg: Config, now: datetime) -> Path:
     return cfg.data_dir / "raw" / now.date().isoformat()
 
 
+def latest_snapshot(cfg: Config, snapshot: str | None = None) -> Path:
+    """The raw snapshot directory for a date, or the newest one when no date is given."""
+    raw_root = cfg.data_dir / "raw"
+    snapshots = sorted(p for p in raw_root.iterdir() if p.is_dir()) if raw_root.is_dir() else []
+    if not snapshots:
+        raise SystemExit("no raw snapshots found; run `just ingest` first")
+    return raw_root / snapshot if snapshot else snapshots[-1]
+
+
 def _save_quality(
     cfg: Config, raw_dir: Path, report: dict[str, dict], name: str, quality: Quality
 ) -> None:
@@ -232,11 +241,7 @@ def validate_stored(cfg: Config, snapshot: str | None = None) -> Path:
 
     Nothing is moved: a hard failure here is reported, and the file stays where it is.
     """
-    raw_root = cfg.data_dir / "raw"
-    snapshots = sorted(p for p in raw_root.iterdir() if p.is_dir()) if raw_root.is_dir() else []
-    if not snapshots:
-        raise SystemExit("no raw snapshots found; run `just ingest` first")
-    raw_dir = raw_root / snapshot if snapshot else snapshots[-1]
+    raw_dir = latest_snapshot(cfg, snapshot)
     report: dict[str, dict] = {}
     for source in sources(cfg):
         path = raw_dir / source.name
