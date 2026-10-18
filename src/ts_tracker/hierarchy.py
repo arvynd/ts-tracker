@@ -44,7 +44,8 @@ def leaf_map(balance: pl.DataFrame, subregion: pl.DataFrame, scope: list[str]) -
     subregion: (Balancing Authority, Sub-Region), only BAs that report them.
     A BA with no sub-regions is its own leaf.
     """
-    raise NotImplementedError("leaf_map: write the join and the null fill here")
+    hierarchy = balance.join(subregion, how="full", on="Balancing Authority")
+    return hierarchy
 
 
 def build(cfg: Config, snapshot: str | None = None) -> Path:
