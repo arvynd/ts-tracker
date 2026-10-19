@@ -19,6 +19,8 @@ ts-tracker = "ts_tracker.cli:main"
 
 [dependency-groups]
 dev = [
+    "pandas>=3.0.6",
+    "pyarrow>=26.0.0",
     "pytest>=8.0",
     "ruff>=0.17.0",
 ]
