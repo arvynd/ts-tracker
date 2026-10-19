@@ -50,7 +50,7 @@ def leaf_map(balance: pl.DataFrame, subregion: pl.DataFrame, scope: list[str]) -
         how="full",
         on="Balancing Authority",
         coalesce=True,
-    )
+    ).rename({BA: "ba", "Region": "region", "Sub-Region": "leaf"})
     return hierarchy
 
 
