@@ -42,9 +42,15 @@ def leaf_map(balance: pl.DataFrame, subregion: pl.DataFrame, scope: list[str]) -
 
     balance:   (Balancing Authority, Region), every BA.
     subregion: (Balancing Authority, Sub-Region), only BAs that report them.
+    Hierarchy is highest to lowest ALL -> Region -> BA -> Sub-Regions
     A BA with no sub-regions is its own leaf.
     """
-    hierarchy = balance.join(subregion, how="full", on="Balancing Authority")
+    hierarchy = balance.join(
+        subregion,
+        how="full",
+        on="Balancing Authority",
+        coalesce=True,
+    )
     return hierarchy
 
 
