@@ -54,3 +54,7 @@ def main() -> None:
     sub.add_parser("bench", help="run the smoke benchmark").set_defaults(func=cmd_bench)
     args = parser.parse_args()
     args.func(args)
+
+
+if __name__ == "__main__":
+    main()
